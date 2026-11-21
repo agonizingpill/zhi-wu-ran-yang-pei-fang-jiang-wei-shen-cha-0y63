@@ -38,6 +38,8 @@ def create_trial(db,data,user):
     ref=require(db,Swatch,data.reference_swatch_id);candidate=require(db,Swatch,data.candidate_swatch_id)
     if ref.id==candidate.id:raise HTTPException(409,'目标与候选必须是不同染样')
     if ref.recipe_id!=recipe.id or candidate.recipe_id!=recipe.id:raise HTTPException(409,'染样不属于同一配方')
+    from .drift_service import swatch_release_guard
+    swatch_release_guard(db,ref.id);swatch_release_guard(db,candidate.id)
     delta=sum((getattr(ref,k)-getattr(candidate,k))**2 for k in ['l','a','b'])**.5
     item=Trial(**data.model_dump(),delta_e=delta,state=TrialState.DRAFT)
     db.add(item);log(db,user,f'建立复染试验 ΔE={delta:.3f}');db.commit();return item
